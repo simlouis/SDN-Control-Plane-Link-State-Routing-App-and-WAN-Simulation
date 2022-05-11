@@ -41,10 +41,10 @@ def connect():
 def compute_optimal(data):
     high_num_vertices = 0
 
+    # Get max number of vertices
     for i in data.values():
         for j in i:
             edge = j
-
             try:
                 source_node = int(edge[0])
             except Exception as e:
@@ -55,13 +55,12 @@ def compute_optimal(data):
     high_num_vertices += 3
 
     for i in range(high_num_vertices):
-        list = []
-        graph.append(list)
+        lis = []
+        graph.append(lis)
 
+    # Differentiate between source node, destination node, and out port
     for i in data.values():
         for node in i:
-            # source_ip_tuple = ()
-            # dest_ip_tuple = ()
             out_port_int = int(node[2])
 
             if isinstance(node[0], int):
@@ -115,14 +114,13 @@ def compute_optimal(data):
                 host2 = i[1]
             if i[0] == router3:
                 host3 = i[1]
+
         routing_table = [shortest_distance(graph, host1, host2, high_num_vertices, port_list),
                          shortest_distance(graph, host1, host3, high_num_vertices, port_list),
                          shortest_distance(graph, host2, host1, high_num_vertices, port_list),
                          shortest_distance(graph, host2, host3, high_num_vertices, port_list),
                          shortest_distance(graph, host3, host1, high_num_vertices, port_list),
                          shortest_distance(graph, host3, host2, high_num_vertices, port_list)]
-        # flatten_routing_table = [j for sub in routing_table.values() for j in sub]
-        # print(flatten_routing_table)
 
         flattened_table = []
         for i in routing_table:
@@ -134,9 +132,6 @@ def compute_optimal(data):
         with open(file_to_send, 'w') as file:
             pass
             json.dump(json_data, file)
-            # response = requests.post("http://{}:2222/set_tables/{}".format(host, endpoint), json.dump(routing_table, file))
-            # response = requests.post("http://{}:2222/set_tables/{}".format(host, endpoint), json.dumps(routing_table))
-            # print(response)
 
 
 def add_edge(graph, src, dest):
