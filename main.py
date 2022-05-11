@@ -2,7 +2,8 @@ import requests
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 import json
-import socket
+from numpy import ndarray as nd
+import sys
 
 router1 = "169.254.20.158"
 router2 = "169.254.173.130"
@@ -12,16 +13,20 @@ port_list = []
 graph = []
 file_to_send = "routing_table.json"
 
-def connect():
-    host = "www.goatgoose.com"
+# host = str(sys.argv[1])
+# endpoint = str(sys.argv[2])
 
+host = "www.goatgoose.com"
+endpoint = "topology2"
+
+
+def connect():
     session = requests.Session()
     retry = Retry(connect=3, backoff_factor=0.5)
     adapter = HTTPAdapter(max_retries=retry)
     session.mount('http://', adapter)
     session.mount('https://', adapter)
 
-    endpoint = "topology2"
     data = None
 
     try:
@@ -35,13 +40,10 @@ def connect():
 
 def compute_optimal(data):
     high_num_vertices = 0
-    src_node = 0
-    dest_node = 0
 
     for i in data.values():
         for j in i:
             edge = j
-            source_node = 0
 
             try:
                 source_node = int(edge[0])
@@ -79,7 +81,6 @@ def compute_optimal(data):
                         source_ip_int = high_num_vertices - 2
 
                 source_ip_tuple = (str(source_ip), source_ip_int - 1)
-                source_node = source_ip_tuple[1]
 
             if isinstance(node[1], int):
                 dest_ip = node[1]
@@ -99,7 +100,6 @@ def compute_optimal(data):
                         dest_ip_int = high_num_vertices - 2
 
                 dest_ip_tuple = (str(dest_ip), dest_ip_int - 1)
-                dest_node = dest_ip_tuple[1]
 
             port_list.append((source_ip_tuple[0], source_ip_tuple[1], dest_ip_tuple[0], dest_ip_tuple[1], out_port_int))
             add_edge(graph, source_ip_tuple[1], dest_ip_tuple[1])
@@ -115,16 +115,28 @@ def compute_optimal(data):
                 host2 = i[1]
             if i[0] == router3:
                 host3 = i[1]
-
-        routing_table = {"table_entries" : [shortest_distance(graph, host1, host2, high_num_vertices, port_list),
+        routing_table = [shortest_distance(graph, host1, host2, high_num_vertices, port_list),
                          shortest_distance(graph, host1, host3, high_num_vertices, port_list),
                          shortest_distance(graph, host2, host1, high_num_vertices, port_list),
                          shortest_distance(graph, host2, host3, high_num_vertices, port_list),
                          shortest_distance(graph, host3, host1, high_num_vertices, port_list),
-                         shortest_distance(graph, host3, host2, high_num_vertices, port_list)]}
+                         shortest_distance(graph, host3, host2, high_num_vertices, port_list)]
+        # flatten_routing_table = [j for sub in routing_table.values() for j in sub]
+        # print(flatten_routing_table)
+
+        flattened_table = []
+        for i in routing_table:
+            for j in i:
+                flattened_table.append(j)
+
+        json_data = {"table_entries" : flattened_table}
 
         with open(file_to_send, 'w') as file:
-            json.dump(routing_table, file)
+            pass
+            json.dump(json_data, file)
+            # response = requests.post("http://{}:2222/set_tables/{}".format(host, endpoint), json.dump(routing_table, file))
+            # response = requests.post("http://{}:2222/set_tables/{}".format(host, endpoint), json.dumps(routing_table))
+            # print(response)
 
 
 def add_edge(graph, src, dest):
@@ -184,7 +196,7 @@ def shortest_distance(graph, src, dest, vertices, ports):
         for j in ports:
             if path[i + 1] == j[1] and path[i] == j[3]:
                 if j[4] != -1:
-                    routing_tuples.append({"switch_id" : int(j[0]), "dest_ip" : dest_string, "out_port" : j[4]})
+                    routing_tuples.append({"switch_id": int(j[0]), "dest_ip": dest_string, "out_port": j[4]})
 
     return routing_tuples
 
@@ -222,10 +234,10 @@ def BFS(graph, src, dest, vertices, pred, dist):
 def send_table():
 
     with open(file_to_send, 'r') as file:
-        send = json.dumps(json.load(file))
-        results = requests.post("http://www.goatgoose.com:2222/set_tables/topology2", data=send)
+        send = json.load(file)
+        results = requests.post("http://{}:2222/set_tables/{}".format(host, endpoint), data=send)
         print(results)
 
 
-# connect()
+connect()
 send_table()
