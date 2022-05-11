@@ -13,11 +13,11 @@ port_list = []
 graph = []
 file_to_send = "routing_table.json"
 
-# host = str(sys.argv[1])
-# endpoint = str(sys.argv[2])
+host = str(sys.argv[1])
+endpoint = str(sys.argv[2])
 
-host = "www.goatgoose.com"
-endpoint = "topology2"
+# host = "www.goatgoose.com"
+# endpoint = "topology2"
 
 
 def connect():
