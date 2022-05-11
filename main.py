@@ -9,7 +9,7 @@ router2 = "169.254.173.130"
 router3 = "169.254.240.121"
 
 port_list = []
-graph = [[]]
+graph = []
 
 
 def connect():
@@ -21,7 +21,7 @@ def connect():
     session.mount('http://', adapter)
     session.mount('https://', adapter)
 
-    endpoint = input("Please enter an endpoint")
+    endpoint = "topology2"
     data = None
 
     try:
@@ -52,8 +52,9 @@ def compute_optimal(data):
 
     high_num_vertices += 3
 
-    # for i in range(high_num_vertices):
-    #     graph.append()
+    for i in range(high_num_vertices):
+        list = []
+        graph.append(list)
 
     for i in data.values():
         for node in i:
@@ -103,10 +104,110 @@ def compute_optimal(data):
             port_list.append((source_ip_tuple[0], source_ip_tuple[1], dest_ip_tuple[0], dest_ip_tuple[1], out_port_int))
             add_edge(graph, source_ip_tuple[1], dest_ip_tuple[1])
 
+        host1 = 0
+        host2 = 0
+        host3 = 0
+
+        for i in port_list:
+            if i[0] == router1:
+                host1 = i[1]
+            if i[0] == router2:
+                host2 = i[1]
+            if i[0] == router3:
+                host3 = i[1]
+
+        routing_table = []
+        routing_table.append(shortest_distance(graph, host1, host2, high_num_vertices, port_list))
+
 
 def add_edge(graph, src, dest):
     graph[src].append(dest)
     graph[dest].append(src)
+
+
+# Algorithm taken from geekforgeeks shortest unweighted path
+def shortest_distance(graph, src, dest, vertices, ports):
+    pred = [None] * vertices
+    dist = [None] * vertices
+
+    out_port = 0
+
+    routing_tuples = ()
+
+    src_string = ""
+    for i in ports:
+        if i[1] == src:
+            src_string = i[0]
+
+    dest_string = ""
+    for i in ports:
+        if i[1] == dest:
+            dest_string = i[0]
+
+    if not BFS(graph, src, dest, vertices, pred, dist):
+        print("There is no path from {} to {}".format(src, dest))
+
+    path = []
+    crawl = dest
+    path.append(crawl)
+
+    while pred[crawl] != -1:
+        path.append(pred[crawl])
+        crawl = pred[crawl]
+
+    for port in ports:
+        if port[1] == path[len(path) - 1] and port[3] == path[len(path) - 2]:
+            if port[4] == -1:
+                print("Shortest path from {} to {} goes out port: ".format(src_string, dest_string))
+                for i in ports:
+                    if i[1] == path[len(path) - 2] and i[3] == path[len(path) - 3]:
+                        out_port = i[4]
+                        print(str(i[4]) + "\n")
+            else:
+                out_port = port[4]
+                print("Shortest path from {} to {} goes out port: {}".format(src_string, dest_string, str(port[4])))
+
+
+
+
+    print("Shortest path length is : {}".format(str(dist[dest])), end='')
+
+    print("\nPath is : : ")
+
+    for i in range(len(path) - 1, -1, -1):
+        print(path[i] + 1, end=' ')
+
+
+
+
+def BFS(graph, src, dest, vertices, pred, dist):
+    queue = []
+
+    visited = [False for i in range(vertices)]
+
+    for i in range(vertices):
+        dist[i] = 10000
+        pred[i] = -1
+
+    visited[src] = True
+    dist[src] = 0
+    queue.append(src)
+
+    while len(queue) != 0:
+        u = queue[0]
+        queue.pop(0)
+        for i in range(len(graph[u])):
+            if visited[graph[u][i]] == False:
+                visited[graph[u][i]] = True
+                dist[graph[u][i]] = dist[u] + 1
+                pred[graph[u][i]] = u
+                queue.append(graph[u][i])
+
+                if graph[u][i] == dest:
+                    return True
+
+    return False
+
 
 def send_tables():
 
