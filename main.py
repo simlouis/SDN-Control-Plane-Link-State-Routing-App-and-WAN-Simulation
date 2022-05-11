@@ -10,7 +10,7 @@ router3 = "169.254.240.121"
 
 port_list = []
 graph = []
-
+file_to_send = "routing_table.json"
 
 def connect():
     host = "www.goatgoose.com"
@@ -116,8 +116,15 @@ def compute_optimal(data):
             if i[0] == router3:
                 host3 = i[1]
 
-        routing_table = []
-        routing_table.append(shortest_distance(graph, host1, host2, high_num_vertices, port_list))
+        routing_table = {"table_entries" : [shortest_distance(graph, host1, host2, high_num_vertices, port_list),
+                         shortest_distance(graph, host1, host3, high_num_vertices, port_list),
+                         shortest_distance(graph, host2, host1, high_num_vertices, port_list),
+                         shortest_distance(graph, host2, host3, high_num_vertices, port_list),
+                         shortest_distance(graph, host3, host1, high_num_vertices, port_list),
+                         shortest_distance(graph, host3, host2, high_num_vertices, port_list)]}
+
+        with open(file_to_send, 'w') as file:
+            json.dump(routing_table, file)
 
 
 def add_edge(graph, src, dest):
@@ -132,7 +139,7 @@ def shortest_distance(graph, src, dest, vertices, ports):
 
     out_port = 0
 
-    routing_tuples = ()
+    routing_tuples = []
 
     src_string = ""
     for i in ports:
@@ -161,25 +168,28 @@ def shortest_distance(graph, src, dest, vertices, ports):
                 print("Shortest path from {} to {} goes out port: ".format(src_string, dest_string))
                 for i in ports:
                     if i[1] == path[len(path) - 2] and i[3] == path[len(path) - 3]:
-                        out_port = i[4]
-                        print(str(i[4]) + "\n")
+                        out_port = str(i[4])
+                        print(out_port)
             else:
-                out_port = port[4]
-                print("Shortest path from {} to {} goes out port: {}".format(src_string, dest_string, str(port[4])))
+                out_port = str(port[4])
+                print("Shortest path from {} to {} goes out port: {}".format(src_string, dest_string, out_port))
 
-
-
-
-    print("Shortest path length is : {}".format(str(dist[dest])), end='')
-
-    print("\nPath is : : ")
+    print("Shortest path length is : {} \n".format(str(dist[dest])), end='')
 
     for i in range(len(path) - 1, -1, -1):
-        print(path[i] + 1, end=' ')
+        print("{}".format(path[i] + 1), end=' ')
+    print("\n")
+
+    for i in range(len(path) - 2):
+        for j in ports:
+            if path[i + 1] == j[1] and path[i] == j[3]:
+                if j[4] != -1:
+                    routing_tuples.append({"switch_id" : int(j[0]), "dest_ip" : dest_string, "out_port" : j[4]})
+
+    return routing_tuples
 
 
-
-
+# Algorithm taken from geeksforgeeks BFS
 def BFS(graph, src, dest, vertices, pred, dist):
     queue = []
 
@@ -209,11 +219,13 @@ def BFS(graph, src, dest, vertices, pred, dist):
     return False
 
 
-def send_tables():
+def send_table():
 
-    # send new forwarding tables to network with requests POST
+    with open(file_to_send, 'r') as file:
+        send = json.dumps(json.load(file))
+        results = requests.post("http://www.goatgoose.com:2222/set_tables/topology2", data=send)
+        print(results)
 
-    pass
 
-connect()
-
+# connect()
+send_table()
