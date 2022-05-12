@@ -2,22 +2,15 @@ import requests
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 import json
-from numpy import ndarray as nd
 import sys
-
-router1 = "169.254.20.158"
-router2 = "169.254.173.130"
-router3 = "169.254.240.121"
 
 port_list = []
 graph = []
 file_to_send = "routing_table.json"
 
-# host = str(sys.argv[1])
-# endpoint = str(sys.argv[2])
+host = str(sys.argv[1])
+endpoint = str(sys.argv[2])
 
-host = "www.goatgoose.co"
-endpoint = "topology1"
 connected = False
 
 
@@ -80,11 +73,11 @@ def compute_optimal(data):
                 try:
                     source_ip = int(source_ip)
                 except Exception as e:
-                    if source_ip == router1:
+                    if source_ip == "169.254.20.158":
                         source_ip_int = high_num_vertices
-                    elif source_ip == router2:
+                    elif source_ip == "169.254.173.130":
                         source_ip_int = high_num_vertices - 1
-                    elif source_ip == router3:
+                    elif source_ip == "169.254.240.121":
                         source_ip_int = high_num_vertices - 2
 
                 source_ip_tuple = (str(source_ip), source_ip_int - 1)
@@ -99,11 +92,11 @@ def compute_optimal(data):
                 try:
                     dest_ip_int = int(dest_ip)
                 except Exception as e:
-                    if dest_ip == router1:
+                    if dest_ip == "169.254.20.158":
                         dest_ip_int = high_num_vertices
-                    elif dest_ip == router2:
+                    elif dest_ip == "169.254.173.130":
                         dest_ip_int = high_num_vertices - 1
-                    elif dest_ip == router3:
+                    elif dest_ip == "169.254.240.121":
                         dest_ip_int = high_num_vertices - 2
 
                 dest_ip_tuple = (str(dest_ip), dest_ip_int - 1)
@@ -116,11 +109,11 @@ def compute_optimal(data):
         host3 = 0
 
         for i in port_list:
-            if i[0] == router1:
+            if i[0] == "169.254.20.158":
                 host1 = i[1]
-            if i[0] == router2:
+            if i[0] == "169.254.173.130":
                 host2 = i[1]
-            if i[0] == router3:
+            if i[0] == "169.254.240.121":
                 host3 = i[1]
 
         routing_table = [shortest_distance(graph, host1, host2, high_num_vertices, port_list),
@@ -138,7 +131,6 @@ def compute_optimal(data):
         json_data = {"table_entries" : flattened_table}
 
         with open(file_to_send, 'w') as file:
-            pass
             json.dump(json_data, file)
 
 
@@ -197,7 +189,7 @@ def shortest_distance(graph, src, dest, vertices, ports):
         for j in ports:
             if path[i + 1] == j[1] and path[i] == j[3]:
                 if j[4] != -1:
-                    routing_tuples.append({"switch_id": int(j[0]), "dest_ip": dest_string, "out_port": j[4]})
+                    routing_tuples.append({"switch_id": int(j[0]), "dst_ip": dest_string, "out_port": j[4]})
 
     return routing_tuples
 
@@ -236,10 +228,11 @@ def send_table():
     global connected
     if connected:
         with open(file_to_send, 'r') as file:
-            send = json.dumps(json.load(file))
-            results = requests.post("http://{}:2222/set_tables/{}".format(host, endpoint), data=send)
+            send = json.load(file)
+            results = requests.post("http://{}:2222/set_tables/{}".format(host, endpoint), json=send)
             print(results.json())
 
 
 connect()
 send_table()
+
