@@ -13,14 +13,16 @@ port_list = []
 graph = []
 file_to_send = "routing_table.json"
 
-host = str(sys.argv[1])
-endpoint = str(sys.argv[2])
+# host = str(sys.argv[1])
+# endpoint = str(sys.argv[2])
 
-# host = "www.goatgoose.com"
-# endpoint = "topology2"
+host = "www.goatgoose.co"
+endpoint = "topology1"
+connected = False
 
 
 def connect():
+    global connected
     session = requests.Session()
     retry = Retry(connect=3, backoff_factor=0.5)
     adapter = HTTPAdapter(max_retries=retry)
@@ -32,10 +34,16 @@ def connect():
     try:
         data = session.get("http://{}:2222/get_topology/{}".format(host, endpoint)).json()
     except Exception as e:
+        print("Connection failed")
         print(e)
+        exit()
 
-    if data is not None:
+    try:
+        data["connected"]
+        connected = True
         compute_optimal(data)
+    except KeyError as e:
+        print(data)
 
 
 def compute_optimal(data):
@@ -144,8 +152,6 @@ def shortest_distance(graph, src, dest, vertices, ports):
     pred = [None] * vertices
     dist = [None] * vertices
 
-    out_port = 0
-
     routing_tuples = []
 
     src_string = ""
@@ -227,11 +233,12 @@ def BFS(graph, src, dest, vertices, pred, dist):
 
 
 def send_table():
-
-    with open(file_to_send, 'r') as file:
-        send = json.load(file)
-        results = requests.post("http://{}:2222/set_tables/{}".format(host, endpoint), data=send)
-        print(results)
+    global connected
+    if connected:
+        with open(file_to_send, 'r') as file:
+            send = json.dumps(json.load(file))
+            results = requests.post("http://{}:2222/set_tables/{}".format(host, endpoint), data=send)
+            print(results.json())
 
 
 connect()
